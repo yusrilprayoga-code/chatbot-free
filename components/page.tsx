@@ -23,6 +23,51 @@ type Message = {
   fullContent?: string
 }
 
+const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
+  const formatContent = (text: string) => {
+    const lines = text.split('\n')
+    let inCodeBlock = false
+    let stepCount = 0
+
+    return lines.map((line, index) => {
+      if (line.startsWith('```')) {
+        inCodeBlock = !inCodeBlock
+        return (
+          <pre key={index} className="bg-muted p-2 rounded-md my-2 overflow-x-auto">
+            <code>{line}</code>
+          </pre>
+        )
+      }
+
+      if (inCodeBlock) {
+        return <code key={index}>{line}</code>
+      }
+
+      if (line.match(/^\d+\.\s/)) {
+        stepCount++
+        return (
+          <div key={index} className="ml-4 mb-2">
+            <span className="font-bold mr-2">{stepCount}.</span>
+            {line.replace(/^\d+\.\s/, '')}
+          </div>
+        )
+      }
+
+      if (line.startsWith('- ')) {
+        return (
+          <li key={index} className="ml-4 mb-1">
+            {line.substring(2)}
+          </li>
+        )
+      }
+
+      return <p key={index} className="mb-2">{line}</p>
+    })
+  }
+
+  return <div>{formatContent(content)}</div>
+}
+
 const AIChatbot = (props: Props) => {
   const [messages, setMessages] = React.useState<Message[]>([])
   const [input, setInput] = React.useState("")
@@ -116,7 +161,6 @@ const AIChatbot = (props: Props) => {
   }
 
   return (
-    <>
     <Card className="w-full h-screen flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="flex items-center space-x-2">
@@ -142,7 +186,11 @@ const AIChatbot = (props: Props) => {
                   <AvatarFallback>{message.role === 'user' ? <User /> : <Bot />}</AvatarFallback>
                 </Avatar>
                 <div className={`rounded-lg p-3 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                  {message.content}
+                  {message.role === 'bot' ? (
+                    <FormattedMessage content={message.content} />
+                  ) : (
+                    message.content
+                  )}
                 </div>
               </div>
             </div>
@@ -180,7 +228,6 @@ const AIChatbot = (props: Props) => {
         </form>
       </CardFooter>
     </Card>
-    </>
   )
 }
 

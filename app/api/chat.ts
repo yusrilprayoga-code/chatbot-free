@@ -1,25 +1,20 @@
-'use server'
+"use server";
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createStreamableValue } from 'ai/rsc';
+import { createStreamableValue } from "ai/rsc";
+import { CohereClient } from "cohere-ai";
 
-const apiKey = process.env.GOOGLE_AI_API_KEY;
-if (!apiKey) {
-  throw new Error('GOOGLE_AI_API_KEY is not defined in the environment variables');
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({ 
-    model: 'gemini-1.5-flash',
+const cohere = new CohereClient({
+  token: process.env.COHERE_API_KEY,
 });
 
 export async function generateChat(context: string, prompt: string) {
   console.log("context", context);
 
-  const stream = createStreamableValue('');
+  const stream = createStreamableValue("");
+
   const processStream = async () => {
-    const result = await model.generateContentStream(`
-      You are an AI assistant embedded in a versatile application. You help users by responding to a variety of prompts and queries, providing detailed and thoughtful responses.
+    const chatStream = await cohere.chatStream({
+      message: `You are an AI assistant embedded in a versatile application. You help users by responding to a variety of prompts and queries, providing detailed and thoughtful responses.
 
       THE TIME NOW IS ${new Date().toLocaleString()}
 
@@ -40,17 +35,23 @@ export async function generateChat(context: string, prompt: string) {
       - Always provide additional helpful information or suggestions when possible.
       - Adjust the length of the response according to the complexity of the user's query, but aim for thoroughness.
       - Be flexible: whether it's answering questions, generating ideas, writing content, or helping solve problems, your response should be informative, clear, and helpful.
-    `);
+      - Remember that you are an AI assistant, so your responses should reflect a high level of intelligence and understanding.
+      - If the user asks for a list, provide a detailed list with explanations or examples.
+      - If the user asks for a definition, provide a clear and concise definition with additional information or examples.
+      - If the user asks for advice, provide thoughtful and practical advice with reasoning and examples.`,
+      model: "command-r-08-2024",
+      temperature: 0.7,
+      promptTruncation: "AUTO",
+      connectors: [{"id":"web-search"}]
+    });
 
-    let lastChunkText = '';
+    let fullResponse = "";
 
-    // Stream the response and update it in real-time
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      if (chunkText !== lastChunkText) {
-        stream.update(chunkText);
+    for await (const chunk of chatStream) {
+      if (chunk.eventType === "text-generation") {
+        fullResponse += chunk.text;
+        stream.update(fullResponse);
       }
-      lastChunkText = chunkText;
     }
 
     stream.done();
