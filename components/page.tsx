@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { generateChat } from "@/app/api/chat"
 import { readStreamableValue } from "ai/rsc"
-import { Bot, Moon, Send, Sun, User } from "lucide-react"
+import { Bot, Moon, Send, Sun, User, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -23,24 +23,35 @@ type Message = {
   fullContent?: string
 }
 
-const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
+const FormattedMessage: React.FC<{ content: string; role: 'user' | 'bot' }> = ({ content, role }) => {
   const formatContent = (text: string) => {
     const lines = text.split('\n')
     let inCodeBlock = false
     let stepCount = 0
+    let codeContent = ''
 
     return lines.map((line, index) => {
       if (line.startsWith('```')) {
-        inCodeBlock = !inCodeBlock
-        return (
-          <pre key={index} className="bg-muted p-2 rounded-md my-2 overflow-x-auto">
-            <code>{line}</code>
-          </pre>
-        )
+        if (inCodeBlock) {
+          const formattedCode = (
+            <ScrollArea className="w-full max-h-[300px]" key={`code-${index}`}>
+              <pre className="bg-muted p-2 rounded-md my-2 overflow-x-auto">
+                <code>{codeContent}</code>
+              </pre>
+            </ScrollArea>
+          )
+          codeContent = ''
+          inCodeBlock = false
+          return formattedCode
+        } else {
+          inCodeBlock = true
+          return null
+        }
       }
 
       if (inCodeBlock) {
-        return <code key={index}>{line}</code>
+        codeContent += line + '\n'
+        return null
       }
 
       if (line.match(/^\d+\.\s/)) {
@@ -62,10 +73,14 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
       }
 
       return <p key={index} className="mb-2">{line}</p>
-    })
+    }).filter(Boolean)
   }
 
-  return <div>{formatContent(content)}</div>
+  return (
+    <div className={`rounded-lg p-3 ${role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+      {formatContent(content)}
+    </div>
+  )
 }
 
 const ThinkingAnimation: React.FC = () => (
@@ -80,6 +95,7 @@ const AIChatbot = (props: Props) => {
   const [messages, setMessages] = React.useState<Message[]>([])
   const [input, setInput] = React.useState("")
   const [isGenerating, setIsGenerating] = React.useState(false)
+  const [shouldStop, setShouldStop] = React.useState(false)
   const scrollAreaRef = React.useRef<HTMLDivElement>(null)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const { theme, setTheme } = useTheme()
@@ -91,6 +107,7 @@ const AIChatbot = (props: Props) => {
     setMessages(prev => [...prev, userMessage])
     setInput("")
     setIsGenerating(true)
+    setShouldStop(false)
 
     try {
       const { output } = await generateChat("", input)
@@ -99,6 +116,9 @@ const AIChatbot = (props: Props) => {
       setMessages(prev => [...prev, { role: 'bot', content: '', fullContent: '' }])
 
       for await (const delta of readStreamableValue(output)) {
+        if (shouldStop) {
+          break
+        }
         if (delta) {
           botResponse += delta
           setMessages(prev => {
@@ -125,7 +145,12 @@ const AIChatbot = (props: Props) => {
       ])
     } finally {
       setIsGenerating(false)
+      setShouldStop(false)
     }
+  }
+
+  const handleStopThinking = () => {
+    setShouldStop(true)
   }
 
   React.useEffect(() => {
@@ -193,13 +218,7 @@ const AIChatbot = (props: Props) => {
                 <Avatar>
                   <AvatarFallback>{message.role === 'user' ? <User /> : <Bot />}</AvatarFallback>
                 </Avatar>
-                <div className={`rounded-lg p-3 ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                  {message.role === 'bot' ? (
-                    <FormattedMessage content={message.content} />
-                  ) : (
-                    message.content
-                  )}
-                </div>
+                <FormattedMessage content={message.content} role={message.role} />
               </div>
             </div>
           ))}
@@ -229,10 +248,17 @@ const AIChatbot = (props: Props) => {
             className="min-h-[40px] max-h-[200px] resize-none"
             rows={1}
           />
-          <Button type="submit" size="icon" disabled={isGenerating || input.trim() === ""}>
-            <Send className="h-4 w-4" />
-            <span className="sr-only">Send</span>
-          </Button>
+          {isGenerating ? (
+            <Button type="button" size="icon" onClick={handleStopThinking}>
+              <X className="h-4 w-4" />
+              <span className="sr-only">Stop thinking</span>
+            </Button>
+          ) : (
+            <Button type="submit" size="icon" disabled={isGenerating || input.trim() === ""}>
+              <Send className="h-4 w-4" />
+              <span className="sr-only">Send</span>
+            </Button>
+          )}
         </form>
       </CardFooter>
     </Card>
