@@ -68,6 +68,14 @@ const FormattedMessage: React.FC<{ content: string }> = ({ content }) => {
   return <div>{formatContent(content)}</div>
 }
 
+const ThinkingAnimation: React.FC = () => (
+  <div className="flex items-center space-x-1">
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+  </div>
+)
+
 const AIChatbot = (props: Props) => {
   const [messages, setMessages] = React.useState<Message[]>([])
   const [input, setInput] = React.useState("")
@@ -165,7 +173,7 @@ const AIChatbot = (props: Props) => {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="flex items-center space-x-2">
           <Bot className="h-6 w-6" />
-          <span>AI Chatbot</span>
+          <span>AI Chatbot by YusrilPrayoga</span>
         </CardTitle>
         <Button
           variant="ghost"
@@ -202,7 +210,7 @@ const AIChatbot = (props: Props) => {
                   <AvatarFallback><Bot /></AvatarFallback>
                 </Avatar>
                 <div className="rounded-lg p-3 bg-muted">
-                  Thinking...
+                  <ThinkingAnimation />
                 </div>
               </div>
             </div>
