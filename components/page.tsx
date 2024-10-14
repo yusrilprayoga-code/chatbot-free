@@ -27,6 +27,7 @@ import {
   Menu,
   Dot,
   CircleDot,
+  Copy,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Textarea } from "@/components/ui/textarea";
@@ -150,6 +151,17 @@ const AIChatbotWithSidebar = (props: Props) => {
     setCurrentSessionId(newSession.id);
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        alert("Text copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy text: ", err);
+      });
+  };
+
   React.useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -205,7 +217,6 @@ const AIChatbotWithSidebar = (props: Props) => {
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
       <div className="flex-grow flex flex-col">
         <Card className="flex-grow rounded-none md:rounded-l-lg shadow-lg">
-          {/* header card */}
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center space-x-2">
               <Bot className="h-6 w-6 text-primary" />
@@ -224,25 +235,14 @@ const AIChatbotWithSidebar = (props: Props) => {
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">Toggle theme</span>
               </Button>
-              {/* <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleToggleSidebar}
-                className="md:hidden rounded-full"
-              >
-                <Menu className="h-5 w-5" />
-              </Button> */}
             </div>
           </CardHeader>
 
           <Separator
             orientation="horizontal"
-            className="
-            border-t border-gray-200 dark:border-gray-700 mb-10
-          "
+            className="border-t border-gray-200 dark:border-gray-700 mb-10"
           />
 
-          {/* content card */}
           <CardContent className="flex-grow overflow-hidden">
             <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
               <AnimatePresence>
@@ -256,37 +256,65 @@ const AIChatbotWithSidebar = (props: Props) => {
                     className="mb-4"
                   >
                     <div
-                      className={`flex items-start ${
+                      className={`flex ${
                         message.role === "user"
                           ? "justify-end"
                           : "justify-start"
                       }`}
                     >
-                      <div
-                        className={`rounded-lg ${
-                          message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground p-2"
-                        }`}
-                      >
-                        <FormattedMessage
-                          content={message.content}
-                          role={message.role}
-                        />
+                      <div className="flex flex-col">
+                        <div
+                          className={`flex items-start ${
+                            message.role === "user"
+                              ? "justify-end"
+                              : "justify-start"
+                          }`}
+                        >
+                          <Avatar
+                            className={`${
+                              message.role === "user"
+                                ? "order-last ml-2"
+                                : "mr-2"
+                            }`}
+                          >
+                            <AvatarFallback>
+                              {message.role === "user" ? (
+                                <User className="h-5 w-5" />
+                              ) : (
+                                <Bot className="h-5 w-5" />
+                              )}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div
+                            className={`rounded-lg ${
+                              message.role === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary text-secondary-foreground"
+                            } p-2`}
+                          >
+                            <FormattedMessage
+                              content={message.content}
+                              role={message.role}
+                            />
+                          </div>
+                          <div
+                            className={`mt-1 flex ${
+                              message.role === "user"
+                                ? "justify-end items-center space-x-2 -order-last"
+                                : "justify-start items-center"
+                            }`}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(message.content)}
+                              className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                              <Copy className="h-3 w-3 mr-1" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                      <Avatar
-                        className={`${
-                          message.role === "user" ? "ml-2" : "mr-2 order-first"
-                        }`}
-                      >
-                        <AvatarFallback>
-                          {message.role === "user" ? (
-                            <User className="h-5 w-5" />
-                          ) : (
-                            <Bot className="h-5 w-5" />
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
                     </div>
                   </motion.div>
                 ))}
@@ -320,19 +348,14 @@ const AIChatbotWithSidebar = (props: Props) => {
               )}
             </ScrollArea>
           </CardContent>
-          <CardFooter
-            className="
-          bottom-0 w-full
-          flex items-center justify-between"
-          >
+          <CardFooter className="bottom-0 w-full flex items-center justify-between">
             <div className="flex w-full items-end space-x-2">
               <Textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message..."
-                className="resize-none flex-grow rounded-lg items-center justify-center
-                  min-h-[50px] max-h-[200px]"
+                className="resize-none flex-grow rounded-lg items-center justify-center min-h-[50px] max-h-[200px]"
                 onKeyDown={handleKeyDown}
                 rows={1}
               />
@@ -350,6 +373,7 @@ const AIChatbotWithSidebar = (props: Props) => {
                 <Button
                   type="submit"
                   size="icon"
+                  onClick={handleSend}
                   disabled={isGenerating || input.trim() === ""}
                   className="items-center justify-center min-h-[50px] min-w-[50px]"
                 >

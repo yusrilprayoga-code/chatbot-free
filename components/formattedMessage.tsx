@@ -1,14 +1,23 @@
-import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const FormattedMessage: React.FC<{ content: string; role: "user" | "bot" }> = ({
   content,
   role,
 }) => {
   const formatContent = (text: string) => {
-    const lines = text.split("\n");
-    let inCodeBlock = false;
-    let stepCount = 0;
-    let codeContent = "";
+    const lines = text.split("\n")
+    let inCodeBlock = false
+    let stepCount = 0
+    let codeContent = ""
+
+    const formatBoldText = (line: string) => {
+      return line.split(/(\*\*.*?\*\*)/).map((part, index) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>
+        }
+        return part
+      })
+    }
 
     return lines
       .map((line, index) => {
@@ -23,47 +32,47 @@ const FormattedMessage: React.FC<{ content: string; role: "user" | "bot" }> = ({
                   <code>{codeContent}</code>
                 </pre>
               </ScrollArea>
-            );
-            codeContent = "";
-            inCodeBlock = false;
-            return formattedCode;
+            )
+            codeContent = ""
+            inCodeBlock = false
+            return formattedCode
           } else {
-            inCodeBlock = true;
-            return null;
+            inCodeBlock = true
+            return null
           }
         }
 
         if (inCodeBlock) {
-          codeContent += line + "\n";
-          return null;
+          codeContent += line + "\n"
+          return null
         }
 
         if (line.match(/^\d+\.\s/)) {
-          stepCount++;
+          stepCount++
           return (
             <div key={index} className="ml-4 mb-2">
               <span className="font-bold mr-2">{stepCount}.</span>
-              {line.replace(/^\d+\.\s/, "")}
+              {formatBoldText(line.replace(/^\d+\.\s/, ""))}
             </div>
-          );
+          )
         }
 
         if (line.startsWith("- ")) {
           return (
             <li key={index} className="ml-4 mb-1">
-              {line.substring(2)}
+              {formatBoldText(line.substring(2))}
             </li>
-          );
+          )
         }
 
         return (
           <p key={index} className="mb-2">
-            {line}
+            {formatBoldText(line)}
           </p>
-        );
+        )
       })
-      .filter(Boolean);
-  };
+      .filter(Boolean)
+  }
 
   return (
     <div
@@ -73,7 +82,7 @@ const FormattedMessage: React.FC<{ content: string; role: "user" | "bot" }> = ({
     >
       {formatContent(content)}
     </div>
-  );
-};
+  )
+}
 
-export default FormattedMessage;
+export default FormattedMessage
